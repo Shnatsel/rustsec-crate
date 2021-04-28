@@ -1,0 +1,23 @@
+version: 2
+updates:
+- package-ecosystem: cargo
+  directory: "/"
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 10
+  ignore:
+  - dependency-name: crates-index
+    versions:
+    - 0.16.3
+    - 0.16.4
+  - dependency-name: once_cell
+    versions:
+    - 1.6.0
+    - 1.7.0
+    - 1.7.2
+  - dependency-name: url
+    versions:
+    - 2.2.1
+  - dependency-name: thiserror
+    versions:
+    - 1.0.24
