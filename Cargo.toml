@@ -15,7 +15,7 @@ edition     = "2018"
 cargo-lock = { version = "6", default-features = false }
 crates-index = { version = "0.16", optional = true }
 cvss = { version = "1", features = ["serde"] }
-fs-err = "2.5"
+fs-err = "2.6"
 git2 = { version = "0.13", optional = true }
 home = { version = "0.5", optional = true }
 humantime = { version = "2", optional = true }
