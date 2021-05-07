@@ -67,6 +67,8 @@ impl UnaffectedRange {
                 } else if end2 == start1 {
                     match (&self.start, &other.end) {
                         (Bound::Inclusive(_), Bound::Inclusive(_)) => (), //keep going
+                        // we've already checked that these fields are not unbounded,
+                        // which means one of them is exclusive, and they don't overlap
                         _ => return false,
                     }
                 }
