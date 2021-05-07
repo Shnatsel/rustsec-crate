@@ -48,3 +48,6 @@ vendored-openssl = ["git2/vendored-openssl"]
 
 [package.metadata.docs.rs]
 all-features = true
+
+[patch.crates-io]
+semver = { git = 'https://github.com/Shnatsel/semver.git' }
