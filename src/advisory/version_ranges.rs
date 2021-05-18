@@ -188,16 +188,28 @@ pub fn unaffected_to_osv_ranges(unaffected: &[UnaffectedRange]) -> Vec<OsvRange>
     // Handle the start bound of the first element, since it's not handled by the main loop
     match &unaffected.first().unwrap().start {
         Bound::Unbounded => {}, // Nothing to do
-        Bound::Exclusive(v) => {todo!()} // needs special handling
+        Bound::Exclusive(v) => {
+            result.push(OsvRange{start: None, end: Some(increment(v))})
+        }
         Bound::Inclusive(v) => {
             result.push(OsvRange{start: None, end: Some(v.clone())})
         }
     }
 
-    // Iterate over pairs of UnaffectedRange and turn the space between each pair into OsvRange
+    // Iterate over pairs of UnaffectedRange and turn the space between each pair into an OsvRange
     for r in unaffected.windows(2) {
-        // TODO: handle inclusive/exclusive bounds
-        result.push(OsvRange{start: r[0].end.version().cloned(), end: r[1].start.version().cloned()});
+        let start = match &r[0].end {
+            // ranges are ordered, so Unbounded can only appear in the first or last element, which are handled outside the loop
+            Bound::Unbounded => unreachable!(),
+            Bound::Exclusive(v) => increment(v),
+            Bound::Inclusive(v) => v.clone(),
+        };
+        let end = match &r[1].start {
+            Bound::Unbounded => unreachable!(),
+            Bound::Exclusive(v) => v.clone(),
+            Bound::Inclusive(v) => increment(v),
+        };
+        result.push(OsvRange{start: Some(start), end: Some(end)});
     }
 
     // Handle the end bound of the last element, since it's not handled by the main loop
@@ -206,10 +218,16 @@ pub fn unaffected_to_osv_ranges(unaffected: &[UnaffectedRange]) -> Vec<OsvRange>
         Bound::Exclusive(v) => {
             result.push(OsvRange{start: Some(v.clone()), end: None})
         }
-        Bound::Inclusive(v) => {todo!()} // needs special handling
+        Bound::Inclusive(v) => {
+            result.push(OsvRange{start: Some(increment(v)), end: None})
+        }
     }
 
     result
+}
+
+fn increment(v: &Version) -> Version {
+    v.clone() // TODO
 }
 
 #[cfg(test)]
