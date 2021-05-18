@@ -227,7 +227,20 @@ pub fn unaffected_to_osv_ranges(unaffected: &[UnaffectedRange]) -> Vec<OsvRange>
 }
 
 fn increment(v: &Version) -> Version {
-    v.clone() // TODO
+    if v.is_prerelease() {
+        todo!()
+    } else {
+        // increment the last version and add "0" as pre-release specifier.
+        // E.g. "1.2.3" is transformed to "1.2.4-0".
+        // This seems to be the lowest possible version that's above 1.2.3 according to semver 2.0 spec
+        let mut v = v.clone();
+        v.build = Vec::new(); // Clear any build metadata, it's not used to determine precedence
+        v.increment_patch();
+        // add pre-release version in string form because I really don't want to mess with private types in semver crate
+        let mut serialized = v.to_string();
+        serialized.push_str("-0");
+        Version::parse(&serialized).unwrap()
+    }
 }
 
 #[cfg(test)]
