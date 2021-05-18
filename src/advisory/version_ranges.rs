@@ -155,6 +155,7 @@ mod tests {
         let range1 = UnaffectedRange{start: Bound::Unbounded, end: Bound::Unbounded};
         let range2 = UnaffectedRange{start: Bound::Unbounded, end: Bound::Unbounded};
         assert!(range1.overlaps(&range2));
+        assert!(range2.overlaps(&range1));
     }
 
     #[test]
@@ -162,6 +163,7 @@ mod tests {
         let range1 = UnaffectedRange{start: Bound::Inclusive(Version::parse("1.2.3").unwrap()), end: Bound::Unbounded};
         let range2 = UnaffectedRange{start: Bound::Unbounded, end: Bound::Exclusive(Version::parse("1.2.3").unwrap())};
         assert!( ! range1.overlaps(&range2));
+        assert!( ! range2.overlaps(&range1));
     }
 
     #[test]
@@ -169,6 +171,7 @@ mod tests {
         let range1 = UnaffectedRange{start: Bound::Inclusive(Version::parse("1.2.3").unwrap()), end: Bound::Unbounded};
         let range2 = UnaffectedRange{start: Bound::Unbounded, end: Bound::Inclusive(Version::parse("1.2.3").unwrap())};
         assert!(range1.overlaps(&range2));
+        assert!(range2.overlaps(&range1));
     }
 
     #[test]
@@ -182,6 +185,7 @@ mod tests {
             end: Bound::Inclusive(Version::parse("1.3.0").unwrap())
         };
         assert!( ! range1.overlaps(&range2));
+        assert!( ! range2.overlaps(&range1));
     }
 
     #[test]
@@ -195,5 +199,6 @@ mod tests {
             end: Bound::Inclusive(Version::parse("1.3.0").unwrap())
         };
         assert!(range1.overlaps(&range2));
+        assert!(range2.overlaps(&range1));
     }
 }
