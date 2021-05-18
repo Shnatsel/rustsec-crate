@@ -54,28 +54,37 @@ impl UnaffectedRange {
     }
 
     /// Requires ranges to be valid (i.e. `start <= end`) to work properly
-    /// TODO: fancy checked constructor for ranges or something
+
     fn overlaps(&self, other: &UnaffectedRange) -> bool {
         assert!(self.is_valid());
         assert!(other.is_valid());
-        // range check for well-formed ranges is `(Start1 <= End2) && (End1 >= Start2)`
-        // but it's complicated by our inclusive/exclusive bounds and unbounded ranges
-        match (self.start.version(), other.end.version()) {
-            (Some(start1), Some(end2)) => {
-                if end2 < start1 {
-                    return false
-                } else if end2 == start1 {
-                    match (&self.start, &other.end) {
-                        (Bound::Inclusive(_), Bound::Inclusive(_)) => (), //keep going
-                        // we've already checked that these fields are not unbounded,
-                        // which means one of them is exclusive, and they don't overlap
-                        _ => return false,
+        
+        // range check for well-formed ranges is `(Start1 <= End2) && (Start2 <= End1)`
+        // but it's complicated by our inclusive/exclusive bounds and unbounded ranges,
+        // So we define a custom less_or_equal for this comparison
+
+        fn less_or_equal(a: &Bound, b: &Bound) -> bool {
+            match (a.version(), b.version()) {
+                (Some(a_version), Some(b_version)) => {
+                    if a_version > b_version {
+                        false
+                    } else if b_version == a_version {
+                        match (a, b) {
+                            (Bound::Inclusive(_), Bound::Inclusive(_)) => true,
+                            // at least one of the fields is exclusive, and
+                            // we've already checked that these fields are not unbounded,
+                            // so they don't overlap
+                            _ => false,
+                        }
+                    } else {
+                        true
                     }
-                }
-            },
-            _ => (), // if one of these bounds is None, keep going
+                },
+                _ => true, // if one of the bounds is None
+            }
         }
-        true // TODO
+
+        less_or_equal(&self.start, &other.end) && less_or_equal(&other.start, &self.end)
     }
 }
 
@@ -87,6 +96,7 @@ enum Bound {
 }
 
 impl Bound {
+    /// Returns just the version, ignoring whether the bound is inclusive or exclusive
     fn version(&self) -> Option<&Version> {
         match &self {
             Bound::Unbounded => None,
@@ -103,6 +113,7 @@ impl Bound {
 //    Which is probably not a great idea in retrospect.
 // 2. There is at most one upper and at most one lower bound in each range.
 //    Stuff like `>= 1.0, >= 2.0` is nonsense.
+// If any of those assumptions are violated, it will panic.
 // This is fine for the advisory database as of May 2021.
 impl From<semver::Range> for UnaffectedRange {
     fn from(input: semver::Range) -> Self {
