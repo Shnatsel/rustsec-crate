@@ -147,7 +147,7 @@ impl From<semver::Range> for UnaffectedRange {
 }
 
 /// Converts a list of unaffected ranges to a range of affected OSV ranges.
-/// Since OSV are a negation of the UNaffected ranges that RustSec stores,
+/// Since OSV ranges are a negation of the UNaffected ranges that RustSec stores,
 /// the entire list has to be passed at once, both patched and unaffected ranges.
 pub fn unaffected_to_osv_ranges(unaffected: &[UnaffectedRange]) -> Vec<OsvRange> {
     // Verify that all incoming ranges are valid. TODO: a checked constructor or something.
