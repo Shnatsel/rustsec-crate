@@ -54,7 +54,8 @@ impl UnaffectedRange {
     }
 
     /// Requires ranges to be valid (i.e. `start <= end`) to work properly
-
+    /// TODO: fancy checked constructor for ranges or something,
+    /// so we wouldn't have to call `.is_valid()` manually
     fn overlaps(&self, other: &UnaffectedRange) -> bool {
         assert!(self.is_valid());
         assert!(other.is_valid());
@@ -142,5 +143,57 @@ impl From<semver::Range> for UnaffectedRange {
         }
         assert!(result.is_valid());
         result
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn both_unbounded() {
+        let range1 = UnaffectedRange{start: Bound::Unbounded, end: Bound::Unbounded};
+        let range2 = UnaffectedRange{start: Bound::Unbounded, end: Bound::Unbounded};
+        assert!(range1.overlaps(&range2));
+    }
+
+    #[test]
+    fn barely_not_overlapping() {
+        let range1 = UnaffectedRange{start: Bound::Inclusive(Version::parse("1.2.3").unwrap()), end: Bound::Unbounded};
+        let range2 = UnaffectedRange{start: Bound::Unbounded, end: Bound::Exclusive(Version::parse("1.2.3").unwrap())};
+        assert!( ! range1.overlaps(&range2));
+    }
+
+    #[test]
+    fn barely_overlapping() {
+        let range1 = UnaffectedRange{start: Bound::Inclusive(Version::parse("1.2.3").unwrap()), end: Bound::Unbounded};
+        let range2 = UnaffectedRange{start: Bound::Unbounded, end: Bound::Inclusive(Version::parse("1.2.3").unwrap())};
+        assert!(range1.overlaps(&range2));
+    }
+
+    #[test]
+    fn clearly_not_overlapping() {
+        let range1 = UnaffectedRange {
+            start: Bound::Inclusive(Version::parse("0.1.0").unwrap()),
+            end: Bound::Inclusive(Version::parse("0.3.0").unwrap())
+        };
+        let range2 = UnaffectedRange {
+            start: Bound::Inclusive(Version::parse("1.1.0").unwrap()),
+            end: Bound::Inclusive(Version::parse("1.3.0").unwrap())
+        };
+        assert!( ! range1.overlaps(&range2));
+    }
+
+    #[test]
+    fn clearly_overlapping() {
+        let range1 = UnaffectedRange {
+            start: Bound::Inclusive(Version::parse("0.1.0").unwrap()),
+            end: Bound::Inclusive(Version::parse("1.1.0").unwrap())
+        };
+        let range2 = UnaffectedRange {
+            start: Bound::Inclusive(Version::parse("0.2.0").unwrap()),
+            end: Bound::Inclusive(Version::parse("1.3.0").unwrap())
+        };
+        assert!(range1.overlaps(&range2));
     }
 }
