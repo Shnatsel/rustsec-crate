@@ -110,7 +110,7 @@ impl Bound {
 // To keep the algorithm simple, we make several assumptions:
 // 1. There are at most two version boundaries per `VersionReq`.
 //    This means that stuff like `>= 1.0 < 1.5 || >= 2.0 || 2.5`
-//    is not supported. We use a list of ranges for that instead...
+//    is not supported. RustSec format uses a list of ranges for that instead...
 //    Which is probably not a great idea in retrospect.
 // 2. There is at most one upper and at most one lower bound in each range.
 //    Stuff like `>= 1.0, >= 2.0` is nonsense.
@@ -185,6 +185,7 @@ pub fn unaffected_to_osv_ranges(unaffected: &[UnaffectedRange]) -> Vec<OsvRange>
 
     let mut result = Vec::new();
 
+    // Handle the start bound of the first element, since it's not handled by the main loop
     match &unaffected.first().unwrap().start {
         Bound::Unbounded => {}, // Nothing to do
         Bound::Exclusive(v) => {todo!()} // needs special handling
@@ -199,6 +200,7 @@ pub fn unaffected_to_osv_ranges(unaffected: &[UnaffectedRange]) -> Vec<OsvRange>
         result.push(OsvRange{start: r[0].end.version().cloned(), end: r[1].start.version().cloned()});
     }
 
+    // Handle the end bound of the last element, since it's not handled by the main loop
     match &unaffected.last().unwrap().end {
         Bound::Unbounded => {}, // Nothing to do
         Bound::Exclusive(v) => {
