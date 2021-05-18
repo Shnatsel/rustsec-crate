@@ -7,8 +7,6 @@
 //! which `semver` crate does not allow doing directly.
 //! See https://github.com/steveklabnik/semver/issues/172
 
-use std::collections::vec_deque;
-
 use semver::Version;
 use semver::version_req::Op;
 
@@ -27,7 +25,7 @@ pub struct OsvRange {
 /// or `unaffected` fields in the security advisory.
 /// Bounds may be inclusive or exclusive.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
-struct UnaffectedRange {
+pub struct UnaffectedRange {
     start: Bound,
     end: Bound,
 }
@@ -151,7 +149,7 @@ impl From<semver::Range> for UnaffectedRange {
 /// Converts a list of unaffected ranges to a range of affected OSV ranges.
 /// Since OSV are a negation of the UNaffected ranges that RustSec stores,
 /// the entire list has to be passed at once, both patched and unaffected ranges.
-fn unaffected_to_osv_ranges(unaffected: &[UnaffectedRange]) -> Vec<OsvRange> {
+pub fn unaffected_to_osv_ranges(unaffected: &[UnaffectedRange]) -> Vec<OsvRange> {
     // Verify that all incoming ranges are valid. TODO: a checked constructor or something.
     unaffected.iter().for_each(|r| assert!(r.is_valid()));
 
@@ -180,7 +178,35 @@ fn unaffected_to_osv_ranges(unaffected: &[UnaffectedRange]) -> Vec<OsvRange> {
         }
     });
 
-    let result = Vec::new();
+    // Unhandled edge case in increment logic: two ranges back to back, one inclusive other exclusive
+    // This does not cause overlap in UnaffectedRange representation, but would result in overlapping OSV ranges.
+    // This can be fixed by coalescing such ranges, and it's just an O(n) pass!
+    // TODO: coalesce such ranges
+
+    let mut result = Vec::new();
+
+    match &unaffected.first().unwrap().start {
+        Bound::Unbounded => {}, // Nothing to do
+        Bound::Exclusive(v) => {todo!()} // needs special handling
+        Bound::Inclusive(v) => {
+            result.push(OsvRange{start: None, end: Some(v.clone())})
+        }
+    }
+
+    // Iterate over pairs of UnaffectedRange and turn the space between each pair into OsvRange
+    for r in unaffected.windows(2) {
+        // TODO: handle inclusive/exclusive bounds
+        result.push(OsvRange{start: r[0].end.version().cloned(), end: r[1].start.version().cloned()});
+    }
+
+    match &unaffected.last().unwrap().end {
+        Bound::Unbounded => {}, // Nothing to do
+        Bound::Exclusive(v) => {
+            result.push(OsvRange{start: Some(v.clone()), end: None})
+        }
+        Bound::Inclusive(v) => {todo!()} // needs special handling
+    }
+
     result
 }
 
