@@ -7,6 +7,8 @@
 //! which `semver` crate does not allow doing directly.
 //! See https://github.com/steveklabnik/semver/issues/172
 
+use std::collections::vec_deque;
+
 use semver::Version;
 use semver::version_req::Op;
 
@@ -144,6 +146,42 @@ impl From<semver::Range> for UnaffectedRange {
         assert!(result.is_valid());
         result
     }
+}
+
+/// Converts a list of unaffected ranges to a range of affected OSV ranges.
+/// Since OSV are a negation of the UNaffected ranges that RustSec stores,
+/// the entire list has to be passed at once, both patched and unaffected ranges.
+fn unaffected_to_osv_ranges(unaffected: &[UnaffectedRange]) -> Vec<OsvRange> {
+    // Verify that all incoming ranges are valid. TODO: a checked constructor or something.
+    unaffected.iter().for_each(|r| assert!(r.is_valid()));
+
+    // Verify that the incoming ranges do not overlap. This is required for the correctness of the algoritm.
+    // The current impl has quadratic complexity, but since we have like 4 ranges at most, this doesn't matter.
+    // We can optimize this later if it starts showing up on profiles.
+    assert!(unaffected.len() > 0); //TODO: maybe don't panic?
+    for a in unaffected[..unaffected.len()-1].iter() {
+        for b in unaffected[1..].iter() {
+            assert!( ! a.overlaps(b));
+        }
+    }
+
+    // Now that we know that unaffected ranges don't overlap, we can simply order them by any of the bounds
+    // and that will result in all ranges being ordered
+    let mut unaffected = unaffected.to_vec();
+    use std::cmp::Ordering;
+    unaffected.sort_unstable_by(|a, b| {
+        match (a.start.version(), b.start.version()) {
+            (None, _) => Ordering::Less,
+            (_, None) => Ordering::Greater,
+            (Some(v1), Some(v2)) => {
+                assert!(v1 != v2); // should be already ruled out by overlap checks, but verify just in case
+                v1.cmp(v2)
+            }
+        }
+    });
+
+    let result = Vec::new();
+    result
 }
 
 #[cfg(test)]
